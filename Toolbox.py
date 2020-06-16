@@ -27,6 +27,5 @@ def delete_files(folder, f_format=".csv", suffix_len=4):
                 os.remove(file)
 
 
-def save_tensor(dst_folder):
-    tt = torch.tensor((0,1), dtype=torch.float32)
-    torch.save(tt, dst_folder + r"\file" + ".pt")
+def save_tensor(tensor, dst_folder):
+    torch.save(tensor, dst_folder + r"\file" + ".pt")
