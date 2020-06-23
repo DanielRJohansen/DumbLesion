@@ -2,46 +2,104 @@ import torch
 import Toolbox
 import numpy as np
 import imageio
+import os
+import random
 
 class Slicer:
     def __init__(self, work_folder):
-        self.min_images = 7
-        self.each_side = self.min_images//2
+        self.slices_in_section = 7
+        self.each_side = self.slices_in_section//2
         self.image_res = 512
         self.work_folder = work_folder
+        self.centerslices = [] # [[folder_path, 3, 4, 5]]  or [path, useable middles]
+        self.num_centers = 0
+        self.min_hu = -1000.
+        self.max_hu = 3000.
+        self.n_val_per_hu = 2. / (self.max_hu - self.min_hu)
+
+    def prepareSliceGetter(self):
+        for sf in Toolbox.get_subs(self.work_folder):
+            centers = []
+            i = self.each_side
+            while i < len(Toolbox.get_subs(sf))-self.each_side:
+                centers.append(i)
+                i += 1
+            self.centerslices.append([sf, centers])
+            break
+
+
+    def makeRandomSection(self):
+        block = random.choice(self.centerslices)
+        center = random.choice(block[1])
+        section = []
+        images = Toolbox.get_subs(block[0])
+        for i in range(self.slices_in_section):
+            slice = images[center - self.each_side + i]
+            section.append(slice)
+        return section
+
+    def randomizeSection(self, section):
+        order = list(range(self.slices_in_section))
+        random.shuffle(order)
+        randomized_section = []
+        for i in range(len(order)):
+            randomized_section.append(section[order[i]])
+        reverse_order = order.copy()
+        reverse_order.reverse()
+
+        return randomized_section, [order, reverse_order]
+
+    def work(self):
+        while True:
+            section = self.makeRandomSection()
+            data, label = self.randomizeSection(section)
+
+
+
+
+
+
+
+    # Prepare data on harddrive
 
     def makeSlices(self, src_folder):
-        #print("makeSlices called. Are you sure about that? (y/n)")
-        #if input() != "y":
-        #    return
+        folder_names = os.listdir(src_folder)
+        for f in folder_names:
+            src_path = os.path.join(src_folder, f)
+            dst_path = os.path.join(self.work_folder, f)
+            if not os.path.exists(dst_path):
+                print(dst_path)
+                os.mkdir(dst_path)
+                images = os.listdir(src_path)
+                for im in images:
+                    im_path = os.path.join(src_path, im)
+                    slice_name = os.path.join(dst_path, im)
+                    slice_name = slice_name[:-4]
+                    try:
+                        slice = self.makeSlice(im_path, normalize=True)
+                        if slice is not False:
+                            Toolbox.save_tensor(slice, slice_name)
+                    except:
+                        print(slice_name, "failed")
 
-        for sf in Toolbox.get_subs(src_folder):
-            images = Toolbox.get_subs(sf)
-            num_ims = len(images)
-            if num_ims < self.min_images:
-                continue
-            i = self.each_side+1
-            while i < (num_ims-self.each_side):
-                slice = self.makeSlice(images[i-self.each_side-1:i+self.each_side])
-                if slice is False:      # Happens when an image is not 512x512
-                    continue
+    def makeSlice(self, im_path, normalize):
+        m = np.asarray([imageio.imread(im_path)], np.int16)   # In extra layer, for easier layering
+        m = np.subtract(m, 32768)
+        slice = torch.from_numpy(m)
 
-                i += 1
+        if slice.size()[1] != 512:
+            return False
 
-    def makeSlice(self, images):
-        print(images)
-        slice = None
-        for im in images:
-            piece = torch.from_numpy(np.asarray([imageio.imread(im)], np.int16))
-            print(piece.size())
-            if piece.size()[1] != 512:
-                return False
+        if normalize:
+            slice = self.normalizeSlice(slice)
+        return slice
 
-            if slice is None:
-                slice = piece
-            else:
-                slice = torch.cat((slice, piece),0 )
+    def normalizeSlice(self, slice):
+        for i in range(self.image_res):
+            for j in range(self.image_res):
+                n_val = -1 + slice[0][i][j] * self.n_val_per_hu
+                if n_val < -1: n_val = -1
+                elif n_val > 1: n_val = 1
+                slice[0][i][j] = n_val
+        return slice
 
-        print(slice.size())
-        Toolbox.save_tensor(slice, self.work_folder)
-        exit()
