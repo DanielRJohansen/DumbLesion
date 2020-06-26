@@ -8,9 +8,10 @@ class DLCNN(nn.Module):
         self.device = device
         self.lr = lr
 
-        self.conv1 = nn.Conv2d(3, 256, 3)  # In_channels, outchannelse, kernelsize
         self.conv1_pad = nn.ZeroPad2d(1)
+        self.conv1 = nn.Conv2d(3, 256, 3)  # In_channels, outchannelse, kernelsize
         self.bn1 = nn.BatchNorm2d(256)  # Batch normalization layer
+        self.conv1_relu = nn.ReLU()
         self.conv2 = nn.Conv2d(256, 128, 3)
         self.bn2 = nn.BatchNorm2d(128)
         self.conv3 = nn.Conv2d(128, 64, 3)
