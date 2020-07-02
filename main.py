@@ -3,19 +3,27 @@ import torch
 import CSVReader
 import DataLUT
 from Batcher import Batcher
-
-
-
+import Constants
+import time
+import sys
+from Slicer import Slicer
 if __name__ == '__main__':
-    source_folder = r"D:\DumbLesion\NIH_scans\Images_png"
-    work_folder = r"F:\DumbLesion\NIH_images"
-    LUT_path = r"F:\DumbLesion\LUT.txt"
-    LUT = DataLUT.makeOrderLUT(work_folder, LUT_path, section_size=7, val_ratio=0.2, full_lut=False)
 
-    batcher = Batcher(work_folder, LUT, num_agents=4, batch_size=32)
+
+
+
+    LUT = DataLUT.makeOrderLUT(Constants.work_folder, Constants.LUT_path, section_size=Constants.section_size,
+                               val_ratio=0.2, full_lut=False)
+
+    batcher = Batcher(LUT)
+    t0 = time.time()
+    batches = []
     while True:
-        batcher.getBatch()
-        print("batch")
+        batch = batcher.getBatch()
+        batches.append(batch)
+        print("Avg. batch time:", (time.time()-t0)/len(batches))
+        print("Num batches: ", len(batches))
+
 
 
 
