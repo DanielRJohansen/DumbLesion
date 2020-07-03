@@ -1,31 +1,102 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
 import Stats
+import Constants
+from Batcher import Batcher
+
 
 class DLCNN(nn.Module):
-    def __init__(self, device, lr):
+    def __init__(self, device):
         super(DLCNN, self).__init__()
         self.device = device
-        self.lr = lr
+        self.lr = Constants.lr
+        channels = Constants.section_size
 
-        self.conv1_pad = nn.ZeroPad2d(1)
-        self.conv1 = nn.Conv2d(3, 256, 3)  # In_channels, outchannelse, kernelsize
-        self.bn1 = nn.BatchNorm2d(256)  # Batch normalization layer
-        self.conv1_relu = nn.ReLU()
-        self.conv2 = nn.Conv2d(256, 128, 3)
-        self.bn2 = nn.BatchNorm2d(128)
-        self.conv3 = nn.Conv2d(128, 64, 3)
-        self.bn3 = nn.BatchNorm2d(64)
-        self.maxpool1 = nn.MaxPool2d(2)
 
-        self.conv4 = nn.Conv2d(64, 32, 3)
-        self.bn4 = nn.BatchNorm2d(32)
-        self.conv5 = nn.Conv2d(32, 32, 3)
-        self.bn5 = nn.BatchNorm2d(32)
+        first_out = 64
+        self.intro_pad = nn.ZeroPad2d(1)
+        self.intro_conv = nn.Conv2d(channels, first_out, kernel_size=3, stride=2)  #Maybe change ksize here
+        self.intro_bn = nn.BatchNorm2d(first_out)
+        self.intro_relu = nn.ReLU()     # Remove?
 
-    def __forward(self, batch):
-        batch = self.conv1_pad(batch)
-        print(batch.shape)
+
+        # Block 1
+        self.B1_1 = nn.Conv2d(first_out, 16, kernel_size=1, stride=1)
+
+        self.B1_3_bottle = nn.Conv2d(first_out, 16, kernel_size=1, stride=1)
+        self.B1_3_pad = nn.ZeroPad2d(1)
+        self.B1_3 = nn.Conv2d(16, 48, kernel_size=3, stride=1)
+
+        self.B1_5_bottle = nn.Conv2d(first_out, 16, kernel_size=1, stride=1)
+        self.B1_5_pad = nn.ZeroPad2d(2)
+        self.B1_5 = nn.Conv2d(16, 32, kernel_size=5, stride=1)
+
+        self.B1_7_bottle = nn.Conv2d(first_out, 16, kernel_size=1, stride=1)
+        self.B1_7_pad = nn.ZeroPad2d(3)
+        self.B1_7 = nn.Conv2d(16, 16, kernel_size=7, stride=1)
+
+        self.B1_maxpool_pad = nn.ZeroPad2d(1)
+        self.B1_maxpool = nn.MaxPool2d(kernel_size=3, stride=1)
+        self.B1_maxpool_bottle = nn.Conv2d(first_out, 16, kernel_size=1, stride=1)
+
+        self.B1_bn = nn.BatchNorm2d(128)
+        # TODO Relu here?
+
+        # Branch 1      - might indicate body area
+        conv_dims = int(16*16*16)
+        self.Branch1_bottle = nn.Conv2d(128, 16, kernel_size=1, stride=1)
+        self.Branch1_pad = nn.ZeroPad2d(3)
+        self.Branch1_conv = nn.Conv2d(16, 16, kernel_size=7, stride=4)
+        self.Branch1_conv2 = nn.Conv2d(16, 16, kernel_size=7, stride=4)
+        self.Branch1_fc = nn.Linear(conv_dims, 20)
+
+
+
+        self.teststuff()
+
+    def teststuff(self):
+        pass
+
+    def forward(self, batch):
+        print("Input batch", batch.shape)
+        batch = self.intro_pad(batch)
+        batch = self.intro_conv(batch)
+        batch = self.intro_bn(batch)
+        batch = self.intro_relu(batch)
+
+        # Block 1
+        one = self.B1_1(batch)
+        three = self.B1_3_bottle(batch)
+        three = self.B1_3_pad(three)
+        three = self.B1_3(three)
+        five = self.B1_5_bottle(batch)
+        five = self.B1_5_pad(five)
+        five = self.B1_5(five)
+        seven = self.B1_7_bottle(batch)
+        seven = self.B1_7_pad(seven)
+        seven = self.B1_7(seven)
+        max = self.B1_maxpool_pad(batch)
+        max = self.B1_maxpool(max)
+        max = self.B1_maxpool_bottle(max)
+        batch = torch.cat((one, three, five, seven, max), dim=1)    # dim 0 is section nr in batch, 1 is channel
+        batch = self.B1_bn(batch)
+
+        branch_1 = self.Branch1_bottle(batch)
+        branch_1 = self.Branch1_pad(branch_1)
+        branch_1 = self.Branch1_conv(branch_1)
+        branch_1 = self.Branch1_pad(branch_1)
+        branch_1 = self.Branch1_conv2(branch_1)
+        print(branch_1.shape)
+        branch_1 = branch_1.view(branch_1.size()[0], -1)
+        print(branch_1.shape)
+        branch_1 = self.Branch1_fc(branch_1)
+
+        print("Result: ", branch_1)
+
+
+
 
 
 
@@ -103,33 +174,38 @@ class Top(nn.Module):
             animal_wrongs = torch.where((classes != labels) & (labels == animal_tensor), torch.tensor([1.]).to(self.device), torch.tensor([0.]).to(self.device))
             self.scoreboard.rights[i] = torch.sum(animal_rights).item()
             self.scoreboard.wrongs[i] = torch.sum(animal_wrongs).item()
+
+
 class DumbLesionNet:
-    def __init__(self, batch_size, test_batch_size, lr, epochs, sample_size, trainfolder, testfolder, batcher, bpe):
+    def __init__(self, batcher):
         # Train stats
-        self.epochs = epochs
-        self.batch_size = batch_size
+        self.epochs = Constants.epochs
+        self.batch_size = Constants.batch_size
         self.acc_history = []
         self.loss_history = []
         self.device = torch.device('cuda:0')
 
         # Batcher
-        self.train_folder = trainfolder
-        self.test_folder = testfolder
         self.batcher = batcher
-        self.batches_per_epoch = bpe
-        print("Training for {} epochs, with {} episodes pr epoch.".format(epochs, self.batches_per_epoch))
+        self.batches_per_epoch = Constants.batches_per_epoch
+        print("Training for {} epochs, with {} episodes pr epoch.".format(Constants.epochs, self.batches_per_epoch))
 
         # Pretrained CNN
-        self.CNN = DLCNN()
+        self.CNN = DLCNN(device=self.device)
         #self.CNN.eval()     # Really crucial!
         self.CNN.to(self.device)
 
 
         # Classifier
-        self.Scoreboard = ScoreBoard(self.num_classes)
-        self.classifier = Top(input_nodes=outputsize, device=self.device, lr=lr, num_classes=self.num_classes, scoreboard=self.Scoreboard,  MLP=mlp)
+        #self.Scoreboard = ScoreBoard(self.num_classes)
+        #self.classifier = Top(input_nodes=outputsize, device=self.device, lr=lr, num_classes=self.num_classes, scoreboard=self.Scoreboard,  MLP=mlp)
         self.inputs = []
         self.labels = []
+
+    def go(self):
+        data, labels = self.batcher.getBatch()
+
+        stuff = self.CNN.forward(data.to(self.device))
 
     def orderLoss(self):
         pass

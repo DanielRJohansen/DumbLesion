@@ -3,7 +3,7 @@ import csv
 import os
 
 
-def makeOrderLUT(folder, LUT_path, section_size, val_ratio, full_lut=False):
+def makeOrderLUT(folder, section_size, val_ratio, full_lut=False):
     each_side = section_size//2
     num_sections = 0
     LUT = []

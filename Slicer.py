@@ -31,7 +31,8 @@ class Slicer:
         section = self.__makeRandomSection()
         data, label = self.__randomizeSection(section)
         batch = self.__loadSectionAsTensor(data)
-        return [batch, label]
+        label = torch.tensor(label, dtype=torch.int8)
+        return batch, label
 
 
     def __makeRandomSection(self):
