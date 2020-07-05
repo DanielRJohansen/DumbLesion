@@ -22,8 +22,10 @@ class Slicer:
 
         self.buffer = None
         self.batch_ready = False
-
-        self.gpu = torch.device('cuda:1')
+        if torch.cuda.device_count() > 1:       # This device used to prepare data, not ML
+            self.gpu = torch.device('cuda:1')
+        else:
+            self.gpu = torch.device('cuda:0')
         self.cpu = torch.device('cpu')
         self.hu_normalizer = torch.tensor(3000)   # Bone becomes 1, air becomes -0.333
 

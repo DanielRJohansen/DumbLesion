@@ -5,54 +5,81 @@ import torch.optim as optim
 import Stats
 import Constants
 from Batcher import Batcher
+import sys
+import time
+B_input_channels = 64
 
+class BlockB(nn.Module):
+    def __init__(self):
+        super(BlockB, self).__init__()
+        self.one = nn.Conv3d(B_input_channels, 16, kernel_size=1, stride=1)
+
+        self.three_bottle = nn.Conv3d(B_input_channels, 16, kernel_size=1, stride=1)
+        self.three = nn.Conv3d(16, 48, kernel_size=3, stride=1, padding=1)
+
+        self.five_bottle = nn.Conv3d(B_input_channels, 16, kernel_size=1, stride=1)
+        self.five = nn.Conv3d(16, 32, kernel_size=5, stride=1, padding=2)
+
+        self.seven_bottle = nn.Conv3d(B_input_channels, 16, kernel_size=1, stride=1)
+        self.seven = nn.Conv3d(16, 16, kernel_size=7, stride=1, padding=3)
+
+        self.maxpool = nn.MaxPool3d(kernel_size=3, stride=1, padding=1)
+        self.maxpool_bottle = nn.Conv3d(B_input_channels, 16, kernel_size=1, stride=1)
+
+    def forward(self, batch):
+        one = self.one(batch)
+        three = self.three_bottle(batch)
+        three = self.three(three)
+        five = self.five_bottle(batch)
+        five = self.five(five)
+        seven = self.B1_7_bottle(batch)
+        seven = self.B1_7(seven)
+        max = self.B1_maxpool(batch)
+        max = self.B1_maxpool_bottle(max)
+        batch = torch.cat((one, three, five, seven, max), dim=1)  # dim 0 is section nr in batch, 1 is channel
+        batch = self.B1_bn(batch)
 
 class DLCNN(nn.Module):
-    def __init__(self, device):
+    def __init__(self, block_B_size=5):
         super(DLCNN, self).__init__()
-        self.device = device
-        self.lr = Constants.lr
-        channels = Constants.section_size
 
 
         first_out = 64
-        self.intro_pad = nn.ZeroPad2d(1)
-        self.intro_conv = nn.Conv2d(channels, first_out, kernel_size=3, stride=2)  #Maybe change ksize here
-        self.intro_bn = nn.BatchNorm2d(first_out)
+        self.CNN = nn.Sequential()
+        self.intro_conv = nn.Conv3d(1, first_out, kernel_size=3, stride=(1,2,2),padding=1)  # To keep depth of 7
+        #self.intro_conv = nn.Conv3d(1, first_out, kernel_size=3, stride=(2,2,2), padding=(0,1,1))  # F0r depth 3
+        self.intro_bn = nn.BatchNorm3d(first_out)
         self.intro_relu = nn.ReLU()     # Remove?
 
 
-        # Block 1
-        self.B1_1 = nn.Conv2d(first_out, 16, kernel_size=1, stride=1)
+        # Block A
+        self.B1_1 = nn.Conv3d(first_out, 16, kernel_size=1, stride=1)
 
-        self.B1_3_bottle = nn.Conv2d(first_out, 16, kernel_size=1, stride=1)
-        self.B1_3_pad = nn.ZeroPad2d(1)
-        self.B1_3 = nn.Conv2d(16, 48, kernel_size=3, stride=1)
+        self.B1_3_bottle = nn.Conv3d(first_out, 16, kernel_size=1, stride=1)
+        self.B1_3 = nn.Conv3d(16, 48, kernel_size=3, stride=1, padding=1)
 
-        self.B1_5_bottle = nn.Conv2d(first_out, 16, kernel_size=1, stride=1)
-        self.B1_5_pad = nn.ZeroPad2d(2)
-        self.B1_5 = nn.Conv2d(16, 32, kernel_size=5, stride=1)
+        self.B1_5_bottle = nn.Conv3d(first_out, 16, kernel_size=1, stride=1)
+        self.B1_5 = nn.Conv3d(16, 32, kernel_size=5, stride=1, padding=2)
 
-        self.B1_7_bottle = nn.Conv2d(first_out, 16, kernel_size=1, stride=1)
-        self.B1_7_pad = nn.ZeroPad2d(3)
-        self.B1_7 = nn.Conv2d(16, 16, kernel_size=7, stride=1)
+        self.B1_7_bottle = nn.Conv3d(first_out, 16, kernel_size=1, stride=1)
+        self.B1_7 = nn.Conv3d(16, 16, kernel_size=7, stride=1, padding=3)
 
-        self.B1_maxpool_pad = nn.ZeroPad2d(1)
-        self.B1_maxpool = nn.MaxPool2d(kernel_size=3, stride=1)
-        self.B1_maxpool_bottle = nn.Conv2d(first_out, 16, kernel_size=1, stride=1)
+        self.B1_maxpool = nn.MaxPool3d(kernel_size=3, stride=1, padding=1)
+        self.B1_maxpool_bottle = nn.Conv3d(first_out, 16, kernel_size=1, stride=1)
 
-        self.B1_bn = nn.BatchNorm2d(128)
+        self.B1_bn = nn.BatchNorm3d(128)
         # TODO Relu here?
 
         # Branch 1      - might indicate body area
-        conv_dims = int(16*16*16)
-        self.Branch1_bottle = nn.Conv2d(128, 16, kernel_size=1, stride=1)
-        self.Branch1_pad = nn.ZeroPad2d(3)
-        self.Branch1_conv = nn.Conv2d(16, 16, kernel_size=7, stride=4)
-        self.Branch1_conv2 = nn.Conv2d(16, 16, kernel_size=7, stride=4)
+        conv_dims = int(16*7*16*16)     #channels, depth, y, x
+        self.Branch1_bottle = nn.Conv3d(128, 16, kernel_size=1, stride=1)
+        self.Branch1_conv = nn.Conv3d(16, 16, kernel_size=7, stride=(1, 4, 4), padding=3)
+        self.Branch1_conv2 = nn.Conv3d(16, 16, kernel_size=7, stride=(1, 4, 4), padding=3)
         self.Branch1_fc = nn.Linear(conv_dims, 20)
 
 
+        # Block B
+        B_blocks = []
 
         self.teststuff()
 
@@ -61,36 +88,29 @@ class DLCNN(nn.Module):
 
     def forward(self, batch):
         print("Input batch", batch.shape)
-        batch = self.intro_pad(batch)
         batch = self.intro_conv(batch)
+        print(batch.shape)
         batch = self.intro_bn(batch)
         batch = self.intro_relu(batch)
 
         # Block 1
         one = self.B1_1(batch)
         three = self.B1_3_bottle(batch)
-        three = self.B1_3_pad(three)
         three = self.B1_3(three)
         five = self.B1_5_bottle(batch)
-        five = self.B1_5_pad(five)
         five = self.B1_5(five)
         seven = self.B1_7_bottle(batch)
-        seven = self.B1_7_pad(seven)
         seven = self.B1_7(seven)
-        max = self.B1_maxpool_pad(batch)
-        max = self.B1_maxpool(max)
+        max = self.B1_maxpool(batch)
         max = self.B1_maxpool_bottle(max)
         batch = torch.cat((one, three, five, seven, max), dim=1)    # dim 0 is section nr in batch, 1 is channel
         batch = self.B1_bn(batch)
 
         branch_1 = self.Branch1_bottle(batch)
-        branch_1 = self.Branch1_pad(branch_1)
         branch_1 = self.Branch1_conv(branch_1)
-        branch_1 = self.Branch1_pad(branch_1)
         branch_1 = self.Branch1_conv2(branch_1)
         print(branch_1.shape)
         branch_1 = branch_1.view(branch_1.size()[0], -1)
-        print(branch_1.shape)
         branch_1 = self.Branch1_fc(branch_1)
 
         print("Result: ", branch_1)
@@ -204,6 +224,7 @@ class DumbLesionNet:
 
     def go(self):
         data, labels = self.batcher.getBatch()
+        print("Ready to send")
 
         stuff = self.CNN.forward(data.to(self.device))
 

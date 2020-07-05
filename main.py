@@ -12,7 +12,7 @@ if __name__ == '__main__':
 
 
 
-    LUT = DataLUT.makeOrderLUT(Constants.work_folder, section_size=Constants.section_size,
+    LUT = DataLUT.makeOrderLUT(Constants.work_folder, section_size=Constants.section_depth,
                                val_ratio=0.2, full_lut=False)
 
     NN = DumbLesionNet(batcher=Batcher(LUT))

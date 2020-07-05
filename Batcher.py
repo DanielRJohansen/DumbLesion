@@ -12,7 +12,7 @@ class Batcher:
         self.work_folder = Constants.work_folder
         self.num_agents = Constants.num_agents
         self.batch_size = Constants.batch_size
-        self.s_size = Constants.section_size
+        self.s_size = Constants.section_depth
         self.mp_queue = multiprocessing.Queue()
 
         for i in range(self.num_agents):
@@ -42,15 +42,16 @@ class Worker(multiprocessing.Process):
 
     def run(self):
         while True:
-            t0 = time.time()
             batch = []
             labels = []
             for i in range(self.batch_size):
                 data, label = self.slicer.getSection()
-                batch.append(data)
+                batch.append(data.unsqueeze(0))  # Unsqueeze adds channel dimension
                 labels.append(label)
 
             batch = torch.stack(batch, dim=0)
             labels = torch.stack(labels, dim=0)
+            while self.queue.qsize() > 2:
+                pass
             self.queue.put((batch, labels))       # TODO load the images as arrays
 
