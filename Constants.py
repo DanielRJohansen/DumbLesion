@@ -8,11 +8,11 @@ num_agents = 1
 max_q_size = 50
 image_size = 512
 
-max_batches_in_ram = 200    #about 22 GB
+max_batches_in_ram = 20    #about 22 GB
 
 
 #Trainingstuff
 batch_size = 1
-epochs = 50
+epochs = 200
 batches_per_epoch = 1000
 lr = 0.001

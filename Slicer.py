@@ -26,6 +26,7 @@ class Slicer:
             self.gpu = torch.device('cuda:1')
         else:
             self.gpu = torch.device('cuda:0')
+            print("Slicer using main GPU")
         self.cpu = torch.device('cpu')
         self.hu_normalizer = torch.tensor(3000)   # Bone becomes 1, air becomes -0.333
 

@@ -18,7 +18,7 @@ class Batcher:
         for i in range(self.num_agents):
             worker = Worker(self.mp_queue, LUT)
             worker.start()
-        print("Batcher initialized with batch_size {} and {} workers".format(self.batch_size, self.num_agents))
+        print("Batcher initialized with batch_size {} and {} workers.".format(self.batch_size, self.num_agents))
 
     def shutOff(self):
         pass

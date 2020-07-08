@@ -16,7 +16,7 @@ if __name__ == '__main__':
                                val_ratio=0.2, full_lut=False)
 
     NN = DumbLesionNet(batcher=Batcher(LUT))
-    NN.go()
+    NN._train()
 
 
 
