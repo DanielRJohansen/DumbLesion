@@ -28,4 +28,4 @@ def delete_files(folder, f_format=".csv", suffix_len=4):
 
 
 def save_tensor(tensor, file_name):
-    torch.save(tensor, file_name + ".pt")
+    torch.save(tensor, file_name     + ".pt")
