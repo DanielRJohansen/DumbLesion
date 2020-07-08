@@ -153,7 +153,7 @@ class Top(nn.Module):
             self.fc_out = nn.Linear(128, output_nodes)
         else:
             self.fc_single = nn.Linear(input_nodes, output_nodes)
-
+        self.bn = nn.BatchNorm1d(output_nodes)      # Only works with batch_size > 1
 
         if MLP:
             print("MLP top loaded")
@@ -169,5 +169,6 @@ class Top(nn.Module):
             batch_data = self.fc_out(batch_data)
         else:
             batch_data = self.fc_single(batch_data)
-
+        #print(batch_data.shape)
+        #batch_data = self.bn(batch_data)
         return batch_data

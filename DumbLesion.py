@@ -71,12 +71,13 @@ class DumbLesionNet(nn.Module):
 
                 ep_acc.append(acc.item())
                 self.acc_history.append(acc.item())
-                ep_loss += loss.item()
+                #ep_loss += loss.item()
+                ep_loss += torch.mean(loss)
                 loss.backward()
                 self.optimizer.step()
 
             e_time = time.time() - e_time
-            print('Finish epoch ', i, 'total loss %.3f' % ep_loss, 'train-accuracy %.3f' % np.mean(ep_acc),
+            print('Finish epoch ', i, 'total loss %.3f' % ep_loss/self.epoch_length, 'train-accuracy %.3f' % np.mean(ep_acc),
                   "  In time ", e_time)
     def go(self):
         data, labels = self.batcher.getBatch()
@@ -86,5 +87,5 @@ class DumbLesionNet(nn.Module):
 
         a = torch.tensor([[2,1,0],[1,0,2],[0,1,2]])
         b = torch.tensor([[0,1,2],[0,1,2],[0,1,2]])
-        orderLoss(a, b)
+        #orderLoss(a, b)
         #orderLoss(stuff, labels)
