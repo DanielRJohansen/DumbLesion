@@ -51,7 +51,7 @@ class Worker(multiprocessing.Process):
 
             batch = torch.stack(batch, dim=0)
             labels = torch.stack(labels, dim=0)
-            while self.queue.qsize() > 2:
+            while self.queue.qsize() > Constants.max_batches_in_ram:
                 pass
             self.queue.put((batch, labels))       # TODO load the images as arrays
 

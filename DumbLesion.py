@@ -32,7 +32,7 @@ class DumbLesionNet(nn.Module):
         print("Training for {} epochs, with {} episodes pr epoch.".format(Constants.epochs, self.batches_per_epoch))
 
         # CNN + TOP modules
-        self.model = nn.ModuleList((DLCNN(), Top(input_nodes=1000, output_nodes=7)))
+        self.model = nn.ModuleList((DLCNN(out_nodes=50, block_B_size=4), Top(input_nodes=50, output_nodes=7)))
         self.model = self.model.to(self.device)
         self.weigths = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
         print("Dumblesion loaded. Weights: ", f"{self.weigths:,}")
@@ -60,25 +60,27 @@ class DumbLesionNet(nn.Module):
                 self.optimizer.zero_grad()
 
                 input, label = self.batcher.getBatch()
-
+                input.require_grad = True
                 prediction = self.__forward(input)
                 prediction = F.softmax(prediction, dim=1)
 
                 loss = self.loss.calcLoss(prediction, label)
-
+                loss = torch.mean(loss)
                 correct_guesses = torch.where((loss == torch.ones(loss.shape)), torch.tensor([1.]), torch.tensor([0.]))
                 acc = torch.mean(correct_guesses)
 
                 ep_acc.append(acc.item())
                 self.acc_history.append(acc.item())
-                #ep_loss += loss.item()
-                ep_loss += torch.mean(loss)
-                loss.backward()
-                self.optimizer.step()
+                ep_loss += loss.item()
 
+                loss.backward()
+                #print(prediction.grad)
+                self.optimizer.step()
             e_time = time.time() - e_time
-            print('Finish epoch ', i, 'total loss %.3f' % ep_loss/self.epoch_length, 'train-accuracy %.3f' % np.mean(ep_acc),
-                  "  In time ", e_time)
+            print("Finish epoch {}. Epoch loss: {:.2f}. Train accuracy: {}. Time: {}.".format(
+                i, ep_loss/self.epoch_length, np.mean(ep_acc),e_time))
+
+
     def go(self):
         data, labels = self.batcher.getBatch()
         print("Ready to send")

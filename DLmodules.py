@@ -28,6 +28,8 @@ class BlockB(nn.Module):
 
         self.bn = nn.BatchNorm3d(64)
 
+        print("Block weights:", sum(p.numel() for p in self.parameters() if p.requires_grad))
+
 
     def forward(self, batch):
         one = self.one(batch)
@@ -44,7 +46,7 @@ class BlockB(nn.Module):
         return batch
 
 class DLCNN(nn.Module):
-    def __init__(self, block_B_size=1):
+    def __init__(self, out_nodes = 500,block_B_size=1):
         super(DLCNN, self).__init__()
 
 
@@ -83,17 +85,18 @@ class DLCNN(nn.Module):
 
 
         # Block B
-        self.B_adapter = nn.Conv3d(128, 64, kernel_size=1, stride=1)
+        self.B_adapter_bottle = nn.Conv3d(128, 64, kernel_size=1, stride=1)
+        self.B_adapter_size = nn.Conv3d(64, 64, kernel_size=(3,5,5), stride=(1,2,2), padding=(1,2,2))
         self.B_blocks = nn.ModuleList()
         for i in range(block_B_size):
             self.B_blocks.append(BlockB())
 
 
-        self.out_maxpool = nn.MaxPool3d(kernel_size=3, stride=(1,2,2), padding=1)   # 64x7x128x128
-        self.out_bottle = nn.Conv3d(64,16,kernel_size=1, stride=1)                  # 16x7x128x128
-        self.out_conv = nn.Conv3d(16, 8, kernel_size=3, stride=(1,2,2), padding=1)  # 8x7x64x64
-        self.out_conv2 = nn.Conv3d(8,8,kernel_size=3, stride=(1,2,2), padding=1)    # 8x7x32x32
-        self.out_layer = nn.Linear(int(8*7*32*32), 980)
+        self.out_maxpool = nn.MaxPool3d(kernel_size=3, stride=(1,2,2), padding=1)   # 64x7x64x64
+        self.out_bottle = nn.Conv3d(64,16,kernel_size=1, stride=1)                  # 16x7x64x64
+        self.out_conv = nn.Conv3d(16, 8, kernel_size=3, stride=(1,2,2), padding=1)  # 8x7x32x32
+        self.out_conv2 = nn.Conv3d(8,8,kernel_size=3, stride=(1,2,2), padding=1)    # 8x7x16x16
+        self.out_layer = nn.Linear(int(8*7*16*16), out_nodes-20)
 
     def forward(self, batch):
         batch = self.intro_conv(batch)
@@ -123,7 +126,8 @@ class DLCNN(nn.Module):
 
 
         # Block B (multiple)
-        batch = self.B_adapter(batch)
+        batch = self.B_adapter_bottle(batch)
+        batch = self.B_adapter_size(batch)
         for block in self.B_blocks:
             batch = block.forward(batch)
 
