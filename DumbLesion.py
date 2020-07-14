@@ -1,13 +1,13 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from DLmodules import DLCNN, Top
+from DLmodules import DLCNN, zTop
 import torch.optim as optim
 import Stats
 import Constants
 import sys
 import time
-from LossCalculator import IoULoss, OrderLoss
+from LossCalculator import IoULoss, OrderLoss, zLoss
 import numpy as np
 
 
@@ -32,7 +32,7 @@ class DumbLesionNet(nn.Module):
         print("Training for {} epochs, with {} episodes pr epoch.".format(Constants.epochs, self.batches_per_epoch))
 
         # CNN + TOP modules
-        self.model = nn.ModuleList((DLCNN(out_nodes=50, block_B_size=4), Top(input_nodes=50, output_nodes=7)))
+        self.model = nn.ModuleList((DLCNN(out_nodes=500, block_B_size=4), zTop()))
         self.model = self.model.to(self.device)
         self.weigths = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
         print("Dumblesion loaded. Weights: ", f"{self.weigths:,}")
@@ -59,15 +59,14 @@ class DumbLesionNet(nn.Module):
             for j in range(self.epoch_length):  # Input: batchsize, kernels, width, height
                 self.optimizer.zero_grad()
 
-                input, label = self.batcher.getBatch()
+                input, hist, label = self.batcher.getBatch()
                 input.require_grad = True
+                label = label.to(self.device)
                 prediction = self.__forward(input)
                 prediction = F.softmax(prediction, dim=1)
 
-                loss = self.loss.calcLoss(prediction, label)
-                loss = torch.mean(loss)
-                correct_guesses = torch.where((loss == torch.ones(loss.shape)), torch.tensor([1.]), torch.tensor([0.]))
-                acc = torch.mean(correct_guesses)
+                loss = zLoss(prediction, label)
+                acc = torch.div(torch.tensor(1), loss)
 
                 ep_acc.append(acc.item())
                 self.acc_history.append(acc.item())

@@ -28,6 +28,8 @@ class OrderLoss:
         loss.requires_grad_()
         return loss
 
+def zLoss(predictions, labels):
+    return torch.mean(torch.abs(torch.sub(torch.flatten(predictions), labels)))
 
 
 
