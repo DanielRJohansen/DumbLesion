@@ -13,9 +13,9 @@ if __name__ == '__main__':
     #Toolbox.highest_lowest(r"F:\DumbLesion\Slices\000001_01_01\109.pt")
     #Toolbox.highest_lowest(r"F:\DumbLesion\Slices\000004_03_02\136.pt")
     #Toolbox.printJpegs()
-    Toolbox.makeAOC(r"D:\DumbLesion\NIH_scans\Images_png",r"F:\DumbLesion\AreasOfConfidence\Train", r"D:\DumbLesion\DL_info.csv", im_size=256)
+    #Toolbox.makeAOC(r"D:\DumbLesion\NIH_scans\Images_png",r"F:\DumbLesion\AreasOfConfidence\Train", r"D:\DumbLesion\DL_info.csv", im_size=256)
     #Toolbox.makeZLabels(r"F:\DumbLesion\AreasOfConfidence\Train", r"D:\DumbLesion\DL_info.csv")
-    #Toolbox.makeAOCLabels(Constants.work_folder, Constants.INFO, num_areas=32)
+    Toolbox.makeAOCLabels(r"F:\DumbLesion\AreasOfConfidence\Train", Constants.INFO, num_areas=32)
     #Toolbox.visualizeLabel(im_path=r"D:\DumbLesion\NIH_scans\Images_png\000865_06_01\114.png",
     #                       label_path=r"F:\DumbLesion\AreasOfConfidence\Train\000865_06_01\114_AOCLabel.pt")
     #exit()

@@ -103,11 +103,10 @@ def makeAOC(src, dst, data_file, im_size):
 
             section = makeSectionList(sf_path, center_path)
             if len(section) != 7:
-                print("Fluke")
-                print(sf, center)
+
                 continue
             section, hist = loadSection(section, im_size=im_size)
-            #saveSectionAndHist(section, hist, dst_path, center)
+            saveSectionAndHist(section, hist, dst_path, center)
 import ast
 def toList(string):
     list = ast.literal_eval(string)
@@ -141,10 +140,24 @@ def makeAOCLabels(dst, data_file, num_areas):
                 continue
             sf, center = getFolderAndCenter(row[0])
             print(sf)
-            box = getRelativeBoxPosition(row, num_areas)
-            label = makeAOCLabel(box, num_areas)
-            name = os.path.join(dst, sf, center[:-4])
-            torch.save(label, name + "_AOCLabel.pt")
+            if elementExists(dst, sf, center[:-4]):
+                box = getRelativeBoxPosition(row, num_areas)
+                label = makeAOCLabel(box, num_areas)
+                name = os.path.join(dst, sf, center[:-4])
+                torch.save(label, name + "_AOCLabel.pt")
+
+def cleanElement( string):
+    return string[:3]
+def elementExists(f, sf, name):
+    if not os.path.isdir(os.path.join(f, sf)):
+        return False
+    elemsinfolder = os.listdir(os.path.join(f, sf))
+    elemsinfolder = list(set(list(map(cleanElement, elemsinfolder))))  # Stackoverflow, obviously..
+    for e in elemsinfolder:
+        if name == e:
+            return True
+    return False
+
 
 def makeZLabels(dst, data_file):
     with open(data_file) as csv_file:
@@ -158,8 +171,9 @@ def makeZLabels(dst, data_file):
             print(sf)
             name = center[:-4]
             path = os.path.join(dst, sf, name)
-            z = torch.tensor(toList(row[8])[2])
-            torch.save(z, path + "_zlabel.pt")
+            if elementExists(dst, sf, name):
+                z = torch.tensor(toList(row[8])[2])
+                torch.save(z, path + "_zlabel.pt")
 
 def visualizeLabel(im_path, label_path):
     label = torch.load(label_path)
