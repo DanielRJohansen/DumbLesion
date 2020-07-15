@@ -50,7 +50,7 @@ class Batcher:
             for e in elements:
                 data = os.path.join(sf, e+"_section.pt")
                 hist = os.path.join(sf, e+"_hist.pt")
-                if self.label_type == "AOC":
+                if self.label_type == "AoC":
                     label = os.path.join(sf, e+"_AOCLabel.pt")
                 else:
                     label = os.path.join(sf, e+"_zlabel.pt")
@@ -62,7 +62,7 @@ class Batcher:
             for e in elements:
                 data = os.path.join(sf, e + "_section.pt")
                 hist = os.path.join(sf, e + "_hist.pt")
-                if self.label_type == "AOC":
+                if self.label_type == "AoC":
                     label = os.path.join(sf, e + "_AOCLabel.pt")
                 else:
                     label = os.path.join(sf, e + "_zlabel.pt")

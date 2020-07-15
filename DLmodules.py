@@ -140,6 +140,7 @@ class zTop(nn.Module):
         self.flat = nn.Conv3d(16, 16, kernel_size=3, stride=1, padding=(0,1,1))
         self.bn = nn.BatchNorm3d(16)      # Only works with batch_size > 1
         self.fc = nn.Linear(16*1*32*32, 1)
+        self.sm = nn.Softmax(1)
 
         self.weigths = sum(p.numel() for p in self.parameters() if p.requires_grad)
         print("zTop loaded. Weights: ", f"{self.weigths:,}")
@@ -150,4 +151,23 @@ class zTop(nn.Module):
         batch = self.bn(batch)
         batch = batch.view(batch.size()[0], -1)
         batch = self.fc(batch)
+        batch = self.sm(batch)
+        return batch
+
+
+class AoCTop(nn.Module):
+    def __init__(self):
+        super(AoCTop, self).__init__()
+        self.flat = nn.Conv3d(16, 16, kernel_size=3, stride=1, padding=(0,1,1))
+        self.bottle = nn.Conv3d(16, 1, kernel_size=1, stride=1, padding=0)
+        self.af = nn.Sigmoid()
+
+        self.weigths = sum(p.numel() for p in self.parameters() if p.requires_grad)
+        print("AoC Top loaded. Weights: ", f"{self.weigths:,}")
+
+    def forward(self, batch):
+        batch = self.flat(batch)
+        batch = self.bottle(batch)
+        batch = torch.squeeze(batch)                    # Removes depth and channel!
+        batch = self.af(batch)
         return batch

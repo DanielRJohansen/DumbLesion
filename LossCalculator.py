@@ -1,4 +1,5 @@
 import torch
+import Constants
 
 loss = torch.nn.CosineSimilarity()
 
@@ -28,10 +29,18 @@ class OrderLoss:
         loss.requires_grad_()
         return loss
 
+
 def zLoss(predictions, labels):
     return torch.mean(torch.abs(torch.sub(torch.flatten(predictions), labels)))
 
 
+def IoULoss(prediction, label):
+    intersect = torch.sum(torch.mul(prediction, label))
+    union = torch.sum(torch.add(prediction, label))
+    if intersect.item() == 0:
+        return torch.tensor(1000)
 
-def IoULoss():
-    pass
+    loss = torch.div(union, intersect)
+    return loss
+
+
