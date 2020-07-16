@@ -27,20 +27,29 @@ class OrderLoss:
 
         loss = torch.div(loss, len(predictions))
         loss.requires_grad_()
-        return loss
+
+        acc = 1-loss.item()
+        return loss, acc
 
 
-def zLoss(predictions, labels):
+def zLoss(predictions, labels, device):
     return torch.mean(torch.abs(torch.sub(torch.flatten(predictions), labels)))
 
 
-def IoULoss(prediction, label):
+def IoULoss(prediction, label, device):
+    cap = torch.ones((label.shape[0], label.shape[1], label.shape[2])).to(device)
     intersect = torch.sum(torch.mul(prediction, label))
-    union = torch.sum(torch.add(prediction, label))
+    union = torch.add(prediction, label)
+    union = torch.where(union > 1, cap, union)
+    union = torch.sum(union)
+
     if intersect.item() == 0:
-        return torch.tensor(1000)
+        return torch.tensor(2)
 
     loss = torch.div(union, intersect)
-    return loss
+    label_sum = torch.sum(label)
+    acc = intersect.item()/label_sum - (union-label_sum)/(32*32)
+
+    return loss, acc.item()
 
 

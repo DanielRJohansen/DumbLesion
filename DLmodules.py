@@ -46,7 +46,7 @@ class BlockB(nn.Module):
         return batch
 
 class DLCNN(nn.Module):
-    def __init__(self, out_nodes = 500,block_B_size=1):
+    def __init__(self, block_B_size=1):
         super(DLCNN, self).__init__()
 
 
@@ -130,6 +130,11 @@ class DLCNN(nn.Module):
         #batch = torch.cat((branch_1, batch), 1)
         return batch
 
+    def loadModel(self):
+        self.load_state_dict(torch.load(Constants.model_path))
+
+    def saveModel(self):
+        torch.save(self.state_dict(), Constants.model_path)
 
 
 

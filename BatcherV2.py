@@ -10,7 +10,7 @@ import random
 # The thread makes sure the Batcher buffer is always full, and has acess to each process
 
 
-class LUTelem:
+class elem:
     def __init__(self, data, hist, label, name=None):
         self.data = data
         self.hist = hist
@@ -18,7 +18,7 @@ class LUTelem:
         self.name = name
 
 class Batcher:
-    def __init__(self, folder, label_type):
+    def __init__(self, folder, label_type, num_val_ims):
         self.train_folder = glob(folder + '\*')[0]
         self.val_folder = glob(folder + '\*')[1]
         self.num_agents = Constants.num_agents
@@ -27,23 +27,29 @@ class Batcher:
         self.mp_queue = multiprocessing.Queue()
         self.label_type = label_type
 
+        self.batches_pr_val_round = int(num_val_ims/self.batch_size)
         self.train_lut = []
         self.val_lut = []
-        self.makeLUT()
+        self.val_batches = []
+        self.__makeLUT()
+        self.__prepValBatches()
+        self._val_batches = self.val_batches.copy()
 
-        workers = []
+
+
+        self.workers = []
         for i in range(self.num_agents):
             pass
             worker = Worker(self.mp_queue, self.train_lut.copy())
             worker.start()
-            workers.append(worker)
+            self.workers.append(worker)
         print("Batcher initialized with batch_size {} and {} workers.".format(self.batch_size, self.num_agents))
 
     def cleanElement(self, string):
         return string[:3]
 
 
-    def makeLUT(self):
+    def __makeLUT(self):
         for sf in glob(self.train_folder+'\*'):
             elements = os.listdir(sf)
             elements = list(set(list(map(self.cleanElement, elements))))    # Stackoverflow, obviously..
@@ -54,7 +60,7 @@ class Batcher:
                     label = os.path.join(sf, e+"_AOCLabel.pt")
                 else:
                     label = os.path.join(sf, e+"_zlabel.pt")
-                self.train_lut.append(LUTelem(data, hist, label, name=sf+'/'+e))
+                self.train_lut.append(elem(data, hist, label, name=sf+'/'+e))
 
         for sf in glob(self.val_folder + '\*'):
             elements = os.listdir(sf)
@@ -66,11 +72,12 @@ class Batcher:
                     label = os.path.join(sf, e + "_AOCLabel.pt")
                 else:
                     label = os.path.join(sf, e + "_zlabel.pt")
-                self.val_lut.append(LUTelem(data, hist, label))
+                self.val_lut.append(elem(data, hist, label))
 
 
     def shutOff(self):
-        pass
+        for worker in self.workers:
+            worker.terminate()
 
 
     def getBatch(self):     # Called from NN only
@@ -79,7 +86,34 @@ class Batcher:
         batch = self.mp_queue.get()
         return batch.data, batch.hist, batch.label   # data, label
 
+    def __prepValBatches(self):
+        for i in range(self.batches_pr_val_round):
+            batch = []
+            hists = []
+            labels = []
 
+            for i in range(self.batch_size):
+                section = self.val_lut.pop()
+                data = torch.load(section.data)
+                if data.shape != (7, 256, 256):
+                    print(section.name)
+                    exit()
+                batch.append(data.unsqueeze(0))  # Unsqueeze adds channel dimension
+                hists.append(torch.load(section.hist))
+                labels.append(torch.load(section.label))
+
+            batch = torch.stack(batch, dim=0)
+            hists = torch.stack(hists, dim=0)
+            labels = torch.stack(labels, dim=0)
+
+            self.val_batches.append(elem(batch, hists, labels))
+
+    def getValBatch(self):
+        if len(self._val_batches) == 0:
+            self._val_batches = self.val_batches.copy()
+            return None, None, None
+        batch = self._val_batches.pop()
+        return batch.data, batch.hist, batch.label
 
 class Worker(multiprocessing.Process):
     def __init__(self, queue, train_lut):
@@ -105,14 +139,12 @@ class Worker(multiprocessing.Process):
                 batch.append(data.unsqueeze(0))  # Unsqueeze adds channel dimension
                 hists.append(torch.load(section.hist))
                 labels.append(torch.load(section.label))
-            try:
-                batch = torch.stack(batch, dim=0)
-            except:
-                print("Fluke found")
-                continue
+
+            batch = torch.stack(batch, dim=0)
             hists = torch.stack(hists, dim=0)
             labels = torch.stack(labels, dim=0)
+
             while self.queue.qsize() > Constants.max_batches_in_ram:
                 pass
-            self.queue.put(LUTelem(batch, hists, labels))       # TODO load the images as arrays
+            self.queue.put(elem(batch, hists, labels))       # TODO load the images as arrays
 
