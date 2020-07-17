@@ -146,8 +146,15 @@ def makeAOCLabels(dst, data_file, num_areas):
                 name = os.path.join(dst, sf, center[:-4])
                 torch.save(label, name + "_AOCLabel.pt")
 
-def cleanElement( string):
-    return string[:3]
+
+def cleanElement(string):
+    index = 0
+    while index < len(string):
+        if string[index] == '_':
+            break
+        index += 1
+    return string[:index]
+
 def elementExists(f, sf, name):
     if not os.path.isdir(os.path.join(f, sf)):
         return False
@@ -172,7 +179,7 @@ def makeZLabels(dst, data_file):
             name = center[:-4]
             path = os.path.join(dst, sf, name)
             if elementExists(dst, sf, name):
-                z = torch.tensor(toList(row[8])[2])
+                z = torch.tensor(toList(row[8])[2], dtype=torch.float32)
                 torch.save(z, path + "_zlabel.pt")
 
 def visualizeLabel(im_path, label_path):

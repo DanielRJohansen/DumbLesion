@@ -46,7 +46,12 @@ class Batcher:
         print("Batcher initialized with batch_size {} and {} workers.".format(self.batch_size, self.num_agents))
 
     def cleanElement(self, string):
-        return string[:3]
+        index = 0
+        while index < len(string):
+            if string[index] == '_':
+                break
+            index += 1
+        return string[:index]
 
 
     def __makeLUT(self):

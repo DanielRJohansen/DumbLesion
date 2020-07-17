@@ -20,4 +20,4 @@ lr = 0.001
 
 
 # Model
-model_path = r"./DLcnn_model.pt"
+#model_path = r"./DLcnn_model.pt"

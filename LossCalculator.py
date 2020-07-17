@@ -33,7 +33,9 @@ class OrderLoss:
 
 
 def zLoss(predictions, labels, device):
-    return torch.mean(torch.abs(torch.sub(torch.flatten(predictions), labels)))
+    loss = torch.mean(torch.abs(torch.sub(torch.flatten(predictions), labels)))
+    acc = 1-loss.item()
+    return loss, acc
 
 
 def IoULoss(prediction, label, device):

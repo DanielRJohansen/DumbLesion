@@ -61,8 +61,8 @@ class DumbLesionNet(nn.Module):
         batch = self.top.forward(batch)
         return batch
 
-    def _train(self):
-        best_acc = -999999
+    def _train(self, best_acc):
+
 
         for i in range(self.epochs):
             self.train()  # Notify PyTorch entering training mode.
@@ -74,7 +74,7 @@ class DumbLesionNet(nn.Module):
                 self.optimizer.zero_grad()
 
                 input, hist, label = self.batcher.getBatch()
-                #input.require_grad = True
+                input.require_grad = True
                 prediction = self.__forward(input)
 
                 loss, acc = self.loss(prediction, label.to(self.device), self.device)
@@ -90,6 +90,8 @@ class DumbLesionNet(nn.Module):
             if self.val_acc_history[-1] > best_acc:
                 best_acc = self.val_acc_history[-1]
                 self.base.saveModel()
+                print()
+                print("Saving current model")
 
             self.acc_history.append(np.mean(ep_acc))
             self.loss_history.append(np.mean(ep_loss))
@@ -123,8 +125,6 @@ class DumbLesionNet(nn.Module):
 
     def plotStuffs(self, best_acc):
         fig, axs = plt.subplots(2)
-        #plt.plot(self.loss_history, 'b', label="Loss")
-        #plt.legend()
 
         axs[0].plot(self.acc_history, label="Train acc.")
         axs[0].plot(self.val_acc_history, label="Val Acc.")
@@ -136,20 +136,10 @@ class DumbLesionNet(nn.Module):
         plt.xlabel("Epoch")
         plt.ylabel("Loss")
         axs[1].legend()
-        #ax2 = ax.twinx()
-        #plt.plot(self.acc_history, 'r', label="Train acc.")
-        #plt.legend()
-
-        #p2 = plt.plot(self.val_acc_history, label="Val Acc.")
-        #plt.legend()
 
         plt.savefig('./Plots/{:.4f}_plot.png'.format(best_acc))
         plt.show()
 
-        #fig, (ax1, ax2) = plt.subplots(1, 2)
-        #fig.suptitle('Horizontally stacked subplots')
-        #.plot(x, y)
-        #ax2.plot(x, -y)
 
     def trainMode(self):
         self.train()

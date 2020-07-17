@@ -28,7 +28,7 @@ class BlockB(nn.Module):
 
         self.bn = nn.BatchNorm3d(64)
 
-        print("Block weights:", sum(p.numel() for p in self.parameters() if p.requires_grad))
+        #print("Block weights:", sum(p.numel() for p in self.parameters() if p.requires_grad))
 
 
     def forward(self, batch):
@@ -130,11 +130,11 @@ class DLCNN(nn.Module):
         #batch = torch.cat((branch_1, batch), 1)
         return batch
 
-    def loadModel(self):
-        self.load_state_dict(torch.load(Constants.model_path))
+    def loadModel(self, model_path):
+        self.load_state_dict(torch.load(model_path))
 
     def saveModel(self):
-        torch.save(self.state_dict(), Constants.model_path)
+        torch.save(self.state_dict(), r"./baseonly_model.pt")
 
 
 
@@ -145,7 +145,7 @@ class zTop(nn.Module):
         self.flat = nn.Conv3d(16, 16, kernel_size=3, stride=1, padding=(0,1,1))
         self.bn = nn.BatchNorm3d(16)      # Only works with batch_size > 1
         self.fc = nn.Linear(16*1*32*32, 1)
-        self.sm = nn.Softmax(1)
+        self.af = nn.Sigmoid()
 
         self.weigths = sum(p.numel() for p in self.parameters() if p.requires_grad)
         print("zTop loaded. Weights: ", f"{self.weigths:,}")
@@ -156,7 +156,7 @@ class zTop(nn.Module):
         batch = self.bn(batch)
         batch = batch.view(batch.size()[0], -1)
         batch = self.fc(batch)
-        batch = self.sm(batch)
+        batch = self.af(batch)
         return batch
 
 

@@ -9,11 +9,11 @@ from DumbLesion import DumbLesionNet
 
 if __name__ == '__main__':
     dst = r"F:\DumbLesion\AreasOfConfidence\Train"
+    model_path = r"./DLcnn_model.pt"
 
-
-    NN = DumbLesionNet(output_type="AoC", num_val_ims=500)
-    #NN.base.loadModel()
-    NN._train()
+    NN = DumbLesionNet(output_type="z", num_val_ims=500)
+    #NN.base.loadModel(model_path=model_path)
+    NN._train(best_acc=-10.4662363085804916)
 
 
 
