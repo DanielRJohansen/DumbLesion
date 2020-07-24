@@ -41,6 +41,7 @@ class BlockB(nn.Module):
         flat = self.flat(flat)
         max = self.maxpool(batch)
         max = self.maxpool_bottle(max)
+
         batch = torch.cat((one, three, five, flat, max), dim=1)  # dim 0 is section nr in batch, 1 is channel
         batch = self.bn(batch)
         return batch
@@ -133,8 +134,9 @@ class DLCNN(nn.Module):
     def loadModel(self, model_path):
         self.load_state_dict(torch.load(model_path))
 
-    def saveModel(self):
-        torch.save(self.state_dict(), r"./baseonly_model.pt")
+    def saveModel(self, acc):
+        acc = str(acc)[:5]
+        torch.save(self.state_dict(), r"./Models/" + acc + "_basemodel.pt")
 
 
 
@@ -144,7 +146,7 @@ class zTop(nn.Module):
         super(zTop, self).__init__()
         self.flat = nn.Conv3d(16, 16, kernel_size=3, stride=1, padding=(0,1,1))
         self.bn = nn.BatchNorm3d(16)      # Only works with batch_size > 1
-        self.fc = nn.Linear(16*1*32*32, 1)
+        self.fc = nn.Linear(16*1*32*32, Constants.z_top_nodes)
         self.af = nn.Sigmoid()
 
         self.weigths = sum(p.numel() for p in self.parameters() if p.requires_grad)

@@ -31,10 +31,16 @@ class OrderLoss:
         acc = 1-loss.item()
         return loss, acc
 
-
+import time
 def zLoss(predictions, labels, device):
-    loss = torch.mean(torch.abs(torch.sub(torch.flatten(predictions), labels)))
-    acc = 1-loss.item()
+    labels = torch.round(labels*20)
+    _labels = torch.zeros((Constants.batch_size, Constants.z_top_nodes))
+    for i in range(Constants.batch_size):
+        _labels[i][int(labels[i])] = 1
+    _labels = _labels.to(device)
+
+    loss = torch.nn.functional.mse_loss(predictions, _labels)
+    acc = 1 -loss.item()
     return loss, acc
 
 

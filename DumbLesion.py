@@ -30,9 +30,10 @@ class DumbLesionNet(nn.Module):
         self.acc_history = []
         self.loss_history = []
         self.val_acc_history = []
+        self.best_acc = -9999
 
         # Batcher
-        self.batcher = Batcher(Constants.work_folder, label_type=self.output_type, num_val_ims=num_val_ims)
+        self.batcher = Batcher(Constants.work_folder, label_type=self.output_type, num_val_ims=num_val_ims, cap_ims=True)
         print("Training for {} epochs, with {} episodes pr epoch.".format(Constants.epochs, self.batches_per_epoch))
 
         # CNN + TOP modules
@@ -52,7 +53,6 @@ class DumbLesionNet(nn.Module):
         else:
             self.loss = zLoss
         #self.loss = IoULoss if self.output_type == "AoC" else self.loss = zLoss
-
         self.optimizer = optim.Adam(self.parameters(), lr=self.lr)
 
     def __forward(self, batch):
@@ -61,43 +61,38 @@ class DumbLesionNet(nn.Module):
         batch = self.top.forward(batch)
         return batch
 
+
+
     def _train(self, best_acc):
-
-
         for i in range(self.epochs):
             self.train()  # Notify PyTorch entering training mode.
-            ep_loss = 0
-            ep_acc = []
+            ep_loss = 0.
+            ep_acc = 0.
             e_time = time.time()
 
             for j in range(self.epoch_length):  # Input: batchsize, kernels, width, height
                 self.optimizer.zero_grad()
-
                 input, hist, label = self.batcher.getBatch()
+                label = label.to(self.device)
                 input.require_grad = True
+                label.require_grad = True
                 prediction = self.__forward(input)
-
-                loss, acc = self.loss(prediction, label.to(self.device), self.device)
-
-                ep_acc.append(acc)
+                loss, acc = self.loss(prediction, label, self.device)
+                ep_acc += acc
                 ep_loss += loss.item()
-
                 loss.backward()
                 self.optimizer.step()
 
+
+
+
             # Validation
             self.val_acc_history.append(self.validate())
-            if self.val_acc_history[-1] > best_acc:
-                best_acc = self.val_acc_history[-1]
-                self.base.saveModel()
-                print()
-                print("Saving current model")
-
-            self.acc_history.append(np.mean(ep_acc))
-            self.loss_history.append(np.mean(ep_loss))
+            self.acc_history.append(ep_acc/self.epoch_length)
+            self.loss_history.append(ep_loss/self.epoch_length)
             e_time = time.time() - e_time
             print("Finish epoch {}. Epoch loss: {:.2f}. Train accuracy: {}. Val accuracy: {}. Time: {}.".format(
-                i, ep_loss/self.epoch_length, np.mean(ep_acc), self.val_acc_history[-1], e_time))
+                i, ep_loss/self.epoch_length, ep_acc/self.epoch_length, self.val_acc_history[-1], e_time))
 
         self.plotStuffs(best_acc)
         self.batcher.shutOff()
@@ -117,7 +112,14 @@ class DumbLesionNet(nn.Module):
             count += 1
             del prediction, loss
 
-        return acc/count
+        acc = acc/ count
+        if acc > self.best_acc:
+            self.best_acc = acc
+            self.base.saveModel(acc)
+            print()
+            print("Saving current model")
+
+        return acc
 
 
 
