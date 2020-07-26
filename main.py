@@ -7,13 +7,33 @@ import Constants
 import time
 from DumbLesion import DumbLesionNet
 
-if __name__ == '__main__':
-    dst = r"F:\DumbLesion\AreasOfConfidence\Train"
-    model_path = r"./DLcnn_model.pt"
 
-    NN = DumbLesionNet(output_type="z", num_val_ims=Constants.num_val_ims)
-    #NN.base.loadModel(model_path=model_path)
-    NN._train(best_acc=-10.4662363085804916)
+
+
+def demonstration():
+    model_path = r"./Models/8_-0.12_model.pt"
+
+    NN = DumbLesionNet(output_type="AoC", num_val_ims=Constants.num_val_ims, CNN_trainable=False)
+    NN.loadModel(model_path=model_path)
+    NN.visualValidation()
+
+
+def train():
+    dst = r"F:\DumbLesion\AreasOfConfidence\Train"
+    model_path = r"./Models/z_run/299_0.949_basemodel.pt"
+
+    NN = DumbLesionNet(output_type="AoC", num_val_ims=Constants.num_val_ims, CNN_trainable=False)
+    NN.base.loadModel(model_path=model_path)
+    NN._train(best_acc=-999, save_base_only=False)
+
+
+if __name__ == '__main__':
+
+    #train()
+    demonstration()
+
+
+
 
 
 

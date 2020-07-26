@@ -134,9 +134,9 @@ class DLCNN(nn.Module):
     def loadModel(self, model_path):
         self.load_state_dict(torch.load(model_path))
 
-    def saveModel(self, acc):
+    def saveModel(self, acc, epoch):
         acc = str(acc)[:5]
-        torch.save(self.state_dict(), r"./Models/" + acc + "_basemodel.pt")
+        torch.save(self.state_dict(), r"./Models/" + str(epoch) + "_" + acc + "_basemodel.pt")
 
 
 
@@ -168,7 +168,7 @@ class AoCTop(nn.Module):
         self.flat = nn.Conv3d(16, 16, kernel_size=3, stride=1, padding=(0,1,1))
         self.bottle = nn.Conv3d(16, 1, kernel_size=1, stride=1, padding=0)
         self.af = nn.Sigmoid()
-
+        
         self.weigths = sum(p.numel() for p in self.parameters() if p.requires_grad)
         print("AoC Top loaded. Weights: ", f"{self.weigths:,}")
 

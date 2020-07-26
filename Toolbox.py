@@ -4,6 +4,7 @@ import torch
 import cv2
 import numpy as np
 import csv
+import Constants
 
 def get_subs(folder):
     return glob(folder + r"\*")
@@ -197,7 +198,21 @@ def visualizeLabel(im_path, label_path):
     cv2.imshow("result", im)
     cv2.waitKey()
 
-#def visualizePrediction
+def visualizePrediction(inputs, predictions):
+    for i in range(Constants.section_depth):
+        print(predictions[i])
+        input = inputs[i][0][3].numpy()
+        prediction = predictions[i]
+        input = cv2.resize(input, (512, 512))
+        input = cv2.normalize(input, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        prediction = torch.add(prediction, 1.)
+        prediction = torch.div(prediction, 3.).cpu().detach().numpy()
+        prediction = cv2.resize(prediction, (512, 512))
+
+        im = cv2.multiply(input, prediction)
+        cv2.imshow("Prediction", im)
+        cv2.waitKey()
+
 
 
 

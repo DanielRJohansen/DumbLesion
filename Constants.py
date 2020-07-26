@@ -12,9 +12,9 @@ max_batches_in_ram = 20    #about 22 GB
 
 
 #Trainingstuff
-batch_size = 6
-epochs = 300
-batches_per_epoch = 1000
+batch_size = 12
+epochs = 10
+batches_per_epoch = 500
 num_val_ims = 1000
 lr = 0.001
 
